@@ -8,6 +8,7 @@
 library(graphics)
 library(dplyr)
 library(data.table)
+library(DescTools)
 
 ##### Section 1: Import data sets
 file.choose()
@@ -16,75 +17,42 @@ identity <- data.frame(read.csv(file = "C:/Users/rschattman/Documents/Research/W
 
 # merge on "Device.ID" 
 sensmit.2 <- merge(sensmit, identity, by = "Device.ID")
-plot(sensmit.2$Device.ID, sensmit.2$MO1)
 summary(sensmit.2)
 
 # create a new column with only the date (as opposed to date/time)
 str(sensmit.2$Date.Time)
 
-sensmit.2$Date <- format(as.POSIXct(strptime(sensmit.2$Date.Time,"%d/%m/%Y %H:%M",tz="")), format = "%d/%m/%Y")
+sensmit.2$Date <- format(as.POSIXct(strptime(sensmit.2$Date.Time,"%m/%d/%Y %H:%M",tz="EST")), format = "%m/%d/%Y")
 
 str(sensmit.2$Date)
 
-# an elegant subsetting method - create seperate dataframes for each plot
-B40B983E <- sensmit.2 %>%
-  filter(Device.ID == "B40B983E") %>%
-  select(Date, MO1, MO2, INT, EXT, Plot, Treatment, Device.ID)
-
-B43CD98E <- sensmit.2 %>%
-  filter(Device.ID == "B43CD98E") %>%
-  select(Date, MO1, MO2, INT, EXT, Plot, Treatment, Device.ID)
-
-B451C068 <- sensmit.2 %>%
-  filter(Device.ID == "B451C068") %>%
-  select(Date, MO1, MO2, INT, EXT, Plot, Treatment, Device.ID)
-
-B4539D4F <- sensmit.2 %>%
-  filter(Device.ID == "B4539D4F") %>%
-  select(Date, MO1, MO2, INT, EXT, Plot, Treatment, Device.ID)
-
-B46C3DF7 <- sensmit.2 %>%
-  filter(Device.ID == "B46C3DF7") %>%
-  select(Date, MO1, MO2, INT, EXT, Plot, Treatment, Device.ID)
-
-B48301B8 <- sensmit.2 %>%
-  filter(Device.ID == "B48301B8") %>%
-  select(Date, MO1, MO2, INT, EXT, Plot, Treatment, Device.ID)
-
-B499C579 <- sensmit.2 %>%
-  filter(Device.ID == "B499C579") %>%
-  select(Date, MO1, MO2, INT, EXT, Plot, Treatment, Device.ID)
-
-B4B0893A <- sensmit.2 %>%
-  filter(Device.ID == "B4B0893A") %>%
-  select(Date, MO1, MO2, INT, EXT, Plot, Treatment, Device.ID)
-
-B4C929E2 <- sensmit.2 %>%
-  filter(Device.ID == "B4C929E2") %>%
-  select(Date, MO1, MO2, INT, EXT, Plot, Treatment, Device.ID)
-
-B4DE10BC <- sensmit.2 %>%
-  filter(Device.ID == "B4DE10BC") %>%
-  select(Date, MO1, MO2, INT, EXT, Plot, Treatment, Device.ID)
-
-B4F2F796 <- sensmit.2 %>%
-  filter(Device.ID == "B4F2F796") %>%
-  select(Date, MO1, MO2, INT, EXT, Plot, Treatment, Device.ID)
-
-B4F6B164 <- sensmit.2 %>%
-  filter(Device.ID == "B4F6B164") %>%
-  select(Date, MO1, MO2, INT, EXT, Plot, Treatment, Device.ID)
-
 # Coerce factors into numeric format
-str(B40B983E)
-B40B983E$MO1N<-as.numeric(as.character(B40B983E$MO1)) #coerce MO1 to numeric
-B40B983E$MO2N<-as.numeric(as.character(B40B983E$MO2)) #coerce MO2 to numeric
-B40B983E$EXTN<-as.numeric(as.character(B40B983E$EXT)) #coerce EXT to numeric
-B40B983E <- B40B983E[,c(1,9,10,11,4,6,7,8)]
+sensmit.2$MO1<-as.numeric(as.character(sensmit.2$MO1)) #coerce MO1 to numeric
+sensmit.2$MO2<-as.numeric(as.character(sensmit.2$MO2)) #coerce MO2 to numeric
+sensmit.2$MO3<-as.numeric(as.character(sensmit.2$MO3)) #coerce MO2 to numeric
+sensmit.2$EXT<-as.numeric(as.character(sensmit.2$EXT)) #coerce EXT to numeric
+str(sensmit.2)
+
+#create new column that indicates which week each Date belongs to
+sensmit.2$Week <- Week(sensmit.2$Date, method = "us")
 
 
-# create daily averages for MO1, MO2, INT, EXT - not there yet
-B40B983E.Mean <- rowMeans(B40B983E$MO1N, by=Date)
 
-B40B983E[, .(Mean = rowMeans(B40B983E$MO1N)), by = ID]
+# use dplyr to create a tibble with daily values summarized
+#scott says dplyr group by day and week and set up a tibble that summarizes by day and week
+
+sensmit.2 %>%
+  group_by(Device.ID, Date) %>%
+  summarize(mean_MO1 = mean(MO1, na.rm = TRUE),
+            mean_MO2 = mean(MO2, na.rm = TRUE),
+            mean_EXT = mean(EXT, na.rm = TRUE),
+            mean_INT = mean(INT, na.rm = TRUE)) #%>%  
+  # filter(!is.na(Date)) # Was used to remove mystery NAs but is no longer needed
+
+sensmit.2 %>%
+  group_by(week = week(Date)) %>%
+  summarize(mean_MO1 = mean(MO1, na.rm = TRUE),
+          mean_MO2 = mean(MO2, na.rm = TRUE),
+          mean_EXT = mean(EXT, na.rm = TRUE),
+          mean_INT = mean(INT, na.rm = TRUE))
   
